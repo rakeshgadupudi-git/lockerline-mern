@@ -1,7 +1,7 @@
 'use strict';
 const mongoose = require('mongoose');
 
-const Tower = mongoose.models.Tower || mongoose.model('Tower', new mongoose.Schema({
+const Tower = mongoose.model('Tower', new mongoose.Schema({
   code: { type: String, required: true, unique: true },
   name: { type: String, required: true },
 }, { collection: 'towers' }));
@@ -12,20 +12,16 @@ const doorSchema = new mongoose.Schema({
   sizeClass: { type: String, enum: ['S', 'M', 'L'], required: true },
   currentParcelId: { type: String, default: null },
 }, { collection: 'doors' });
-
 doorSchema.index({ towerId: 1, no: 1 }, { unique: true });
-
-const Door = mongoose.models.Door || mongoose.model('Door', doorSchema);
+const Door = mongoose.model('Door', doorSchema);
 
 const residentSchema = new mongoose.Schema({
   towerId: { type: String, required: true },
   flat: { type: String, required: true },
   name: { type: String, required: true },
 }, { collection: 'residents' });
-
 residentSchema.index({ towerId: 1, flat: 1 }, { unique: true });
-
-const Resident = mongoose.models.Resident || mongoose.model('Resident', residentSchema);
+const Resident = mongoose.model('Resident', residentSchema);
 
 /** A tower's doors in door-number order, as plain objects. */
 function doorsOf(towerId) {
@@ -56,37 +52,21 @@ function residentExists(towerId, flat, session) {
 
 /** The free door of exactly this size with the lowest number, or null. */
 function lowestFree(towerId, sizeClass, session) {
-  return Door.findOne({ towerId, sizeClass, currentParcelId: null })
-    .sort({ no: 1 })
-    .session(session)
-    .lean();
+  return Door.findOne({ towerId, sizeClass, currentParcelId: null }).sort({ no: 1 }).session(session).lean();
 }
 
 /** The size classes that still have at least one free door, small to large. */
 async function freeSizes(towerId, session) {
-  const sizes = await Door.distinct(
-    'sizeClass',
-    { towerId, currentParcelId: null },
-  ).session(session);
-
+  const sizes = await Door.distinct('sizeClass', { towerId, currentParcelId: null }).session(session);
   return ['S', 'M', 'L'].filter((size) => sizes.includes(size));
 }
 
 async function hold(towerId, no, parcelId, session) {
-  await Door.updateOne(
-    { towerId, no },
-    { $set: { currentParcelId: parcelId } },
-    { session },
-  );
+  await Door.updateOne({ towerId, no }, { $set: { currentParcelId: parcelId } }, { session });
 }
 
-module.exports = {
-  towerExists,
-  addTower,
-  doorsOf,
-  door,
-  residentExists,
-  lowestFree,
-  freeSizes,
-  hold,
-};
+async function release(towerId, no, session) {
+  await Door.updateOne({ towerId, no }, { $set: { currentParcelId: null } }, { session });
+}
+
+module.exports = { towerExists, addTower, doorsOf, door, residentExists, lowestFree, freeSizes, hold, release };

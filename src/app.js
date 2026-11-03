@@ -19,7 +19,9 @@ function createApp({ settings, clock }) {
   const doors = makeDoorService({ repository: doorRepository, parcels: parcelRepository, clock });
   const drops = makeDropService({ doors: doorRepository, parcels: parcelRepository, settings, clock, inTransaction });
   const parcels = makeParcelService({ repository: parcelRepository });
-  const pickups = makePickupService({ parcels: parcelRepository, settings, clock });
+  const pickups = makePickupService({
+    parcels: parcelRepository, doors: doorRepository, settings, clock, inTransaction,
+  });
 
   app.use(express.json());
   app.use(makeDoorRouter(doors));
