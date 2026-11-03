@@ -15,6 +15,13 @@ test('a medium drop for flat 302 takes the lowest free medium door', async () =>
   expect(res.headers.location).toBe(`/parcels/${res.body.parcelId}`);
 });
 
+test('the drop gives a six-digit code that expires 48 hours after the drop', async () => {
+  const res = await db.api().post('/drops').send({ sizeClass: 'L', flat: '302' });
+
+  expect(res.body.code).toMatch(/^[0-9]{6}$/);
+  expect(res.body.droppedAt).toBe('2026-09-25T13:10:00Z');
+  expect(res.body.expiresAt).toBe('2026-09-27T13:10:00Z');
+});
 test('a size class outside S, M, L is a 400 naming sizeClass', async () => {
   const res = await db.api().post('/drops').send({ sizeClass: 'XL', flat: '302' });
 
@@ -50,3 +57,4 @@ test('a body that is not JSON at all is a 400 validation problem', async () => {
   expect(res.status).toBe(400);
   expect(res.body.type).toBe('/errors/validation');
 });
+

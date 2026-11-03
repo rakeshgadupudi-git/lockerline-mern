@@ -15,7 +15,7 @@ const { notFound, errorHandler } = require('./errors/middleware');
 function createApp({ settings, clock }) {
   const app = express();
   const doors = makeDoorService({ repository: doorRepository, parcels: parcelRepository, clock });
-  const drops = makeDropService({ doors: doorRepository, parcels: parcelRepository, clock, inTransaction });
+  const drops = makeDropService({ doors: doorRepository, parcels: parcelRepository, settings, clock, inTransaction });
   const parcels = makeParcelService({ repository: parcelRepository });
 
   app.use(express.json());

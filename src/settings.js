@@ -12,6 +12,8 @@ function loadSettings() {
     host: env.HOST || '127.0.0.1',
     port: Number(env.PORT || 8080),
     seedDir: env.SEED_DIR || path.join(__dirname, '..', 'seed'),
+    freeWindowHours: Number(env.FREE_WINDOW_HOURS || 48),
+    codeHashKey: env.CODE_HASH_KEY || 'lockerline-development-key',
   });
 }
 
