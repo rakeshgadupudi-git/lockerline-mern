@@ -9,6 +9,8 @@ const { makeDropService } = require('./drops/service');
 const { makeDropRouter } = require('./drops/router');
 const { makeParcelService } = require('./parcels/service');
 const { makeParcelRouter } = require('./parcels/router');
+const { makePickupService } = require('./pickups/service');
+const { makePickupRouter } = require('./pickups/router');
 const { notFound, errorHandler } = require('./errors/middleware');
 
 /** Builds the Express app. It never connects to the database and never listens: server.js and tests do that. */
@@ -17,11 +19,13 @@ function createApp({ settings, clock }) {
   const doors = makeDoorService({ repository: doorRepository, parcels: parcelRepository, clock });
   const drops = makeDropService({ doors: doorRepository, parcels: parcelRepository, settings, clock, inTransaction });
   const parcels = makeParcelService({ repository: parcelRepository });
+  const pickups = makePickupService({ parcels: parcelRepository, settings, clock });
 
   app.use(express.json());
   app.use(makeDoorRouter(doors));
   app.use(makeDropRouter(drops));
   app.use(makeParcelRouter(parcels));
+  app.use(makePickupRouter(pickups));
   app.use(notFound);
   app.use(errorHandler);
   return app;
