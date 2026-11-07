@@ -3,6 +3,7 @@ const express = require('express');
 const { inTransaction } = require('./db');
 const doorRepository = require('./doors/repository');
 const parcelRepository = require('./parcels/repository');
+const eventRepository = require('./events/repository');
 const { makeDoorService } = require('./doors/service');
 const { makeDoorRouter } = require('./doors/router');
 const { makeDropService } = require('./drops/service');
@@ -17,10 +18,12 @@ const { notFound, errorHandler } = require('./errors/middleware');
 function createApp({ settings, clock }) {
   const app = express();
   const doors = makeDoorService({ repository: doorRepository, parcels: parcelRepository, clock });
-  const drops = makeDropService({ doors: doorRepository, parcels: parcelRepository, settings, clock, inTransaction });
-  const parcels = makeParcelService({ repository: parcelRepository });
+  const drops = makeDropService({
+    doors: doorRepository, parcels: parcelRepository, events: eventRepository, settings, clock, inTransaction,
+  });
+  const parcels = makeParcelService({ repository: parcelRepository, events: eventRepository });
   const pickups = makePickupService({
-    parcels: parcelRepository, doors: doorRepository, settings, clock, inTransaction,
+    parcels: parcelRepository, doors: doorRepository, events: eventRepository, settings, clock, inTransaction,
   });
 
   app.use(express.json());

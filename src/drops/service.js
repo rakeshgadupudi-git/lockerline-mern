@@ -6,13 +6,17 @@ const { newCode, hashCode } = require('../parcels/codes');
 const TOWER = 'A';
 const HOUR = 60 * 60 * 1000;
 
-function makeDropService({ doors, parcels, settings, clock, inTransaction }) {
+function makeDropService({ doors, parcels, events, settings, clock, inTransaction }) {
   async function freshCode(session) {
     let code = newCode();
     while (await parcels.codeHashWaiting(hashCode(code, settings.codeHashKey), session)) code = newCode();
     return code;
   }
 
+  /**
+   * A courier's drop: the free door of exactly this size with the lowest number. Recording the parcel, holding the
+   * door and writing their events happen in one transaction, so a failure part-way leaves none of them.
+   */
   async function drop({ sizeClass, flat }) {
     return inTransaction(async (session) => {
       if (!(await doors.residentExists(TOWER, flat, session))) throw new NoSuchFlat(flat);
@@ -27,6 +31,13 @@ function makeDropService({ doors, parcels, settings, clock, inTransaction }) {
         codeHash: hashCode(code, settings.codeHashKey), codeExpiresAt: expiresAt,
       }, session);
       await doors.hold(TOWER, door.no, parcelId, session);
+      await events.record({ towerId: TOWER, parcelId, kind: 'dropped', at: droppedAt, data: { door: door.no } }, session);
+      await events.record(
+        {
+          towerId: TOWER, parcelId, kind: 'code_issued', at: droppedAt, data: { expiresAt: iso(expiresAt) },
+        },
+        session
+      );
       // The only answer that ever shows the code: the courier hands it to the resident.
       return { parcelId, door: door.no, sizeClass, flat, droppedAt: iso(droppedAt), code, expiresAt: iso(expiresAt) };
     });
@@ -34,3 +45,4 @@ function makeDropService({ doors, parcels, settings, clock, inTransaction }) {
   return { drop };
 }
 module.exports = { makeDropService };
+
